@@ -1500,7 +1500,7 @@
           <input type="text" class="fancy-input" id="session-name-input" placeholder="e.g. Calculus Chapter 4…" autocomplete="off" onkeydown="if(event.key==='Enter')nextStep()">
           <div class="input-hint">
             <span class="hint-chip" onclick="setSessionName('Linear Algebra')">Linear Algebra</span>
-            <span class="hint-chip" onclick="setSessionName('History of Art — Exam')">History of Art</span>
+            <span class="hint-chip" onclick="setSessionName('History of Art - Exam')">History of Art</span>
             <span class="hint-chip" onclick="setSessionName('Physics Lab Report')">Physics Lab</span>
             <span class="hint-chip" onclick="setSessionName('Thesis Writing')">Thesis Writing</span>
           </div>
@@ -2208,13 +2208,16 @@ function showReturnBanner(seconds) {
   document.body.appendChild(banner);
   setTimeout(() => banner?.remove(), 5000);
 }
-  // Remove empty content
+
+function createTab(tabId, emoji, label) {
+  // Remove empty content placeholder if present
   document.getElementById('empty-content')?.remove();
 
   const tab = document.createElement('button');
   tab.className = 'content-tab';
   tab.id = tabId + '-tab';
-  tab.innerHTML = `${emoji} ${label} <button class="content-tab-close" onclick="closeTab(event,'${tabId}')">×</button>`;
+  // Build innerHTML safely — tabId is always a safe alphanumeric string like "tab-file-0"
+  tab.innerHTML = emoji + ' ' + label + ' <button class="content-tab-close" onclick="closeTab(event,\'' + tabId + '\')">\u00d7</button>';
   tab.onclick = (e) => { if (!e.target.classList.contains('content-tab-close')) activateTab(tabId); };
   document.getElementById('content-tabs').appendChild(tab);
   state.openTabs.push(tabId);
