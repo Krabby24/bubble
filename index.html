@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bubble — Focus Study Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  /* ===================== DESIGN SYSTEM ===================== */
+  :root {
+    --bg: #050810;
+    --bg2: #080d1a;
+    --surface: rgba(255,255,255,0.03);
+    --surface2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --cyan: #4DF0C5;
+    --cyan2: #2dd4a8;
+    --blue: #3B7DFF;
+    --blue2: #6B9FFF;
+    --violet: #8B5CF6;
+    --text: #F0F4FF;
+    --text2: rgba(240,244,255,0.55);
+    --text3: rgba(240,244,255,0.3);
+    --danger: #FF5F6D;
+    --glow-cyan: 0 0 40px rgba(77,240,197,0.15);
+    --glow-blue: 0 0 40px rgba(59,125,255,0.2);
+    --radius: 16px;
+    --radius2: 24px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    cursor: default;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===================== CANVAS ===================== */
+  #canvas {
+    position: fixed; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===================== SCREENS ===================== */
+  .screen {
+    position: fixed; inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .screen.exit {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  /* ===================== WELCOME SCREEN ===================== */
+  #screen-welcome {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .welcome-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .logo-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-svg {
+    width: 90px;
+    height: 90px;
+    animation: logoFloat 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(77,240,197,0.4));
+  }
+
+  @keyframes logoFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .logo-ring {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(77,240,197,0.15);
+    animation: ringPulse 3s ease-in-out infinite;
+  }
+  .logo-ring:nth-child(2) {
+    width: 160px; height: 160px;
+    border-color: rgba(77,240,197,0.08);
+    animation-delay: 0.5s;
+  }
+  .logo-ring:nth-child(3) {
+    width: 200px; height: 200px;
+    border-color: rgba(77,240,197,0.04);
+    animation-delay: 1s;
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.6; }
+  }
+
+  .welcome-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 6vw, 80px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--cyan) 50%, var(--blue2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .welcome-sub {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text2);
+    max-width: 420px;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  .welcome-sub em {
+    color: var(--cyan);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 100%);
+    color: #050810;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 16px 36px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 30px rgba(77,240,197,0.25), 0 8px 30px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 50px rgba(77,240,197,0.4), 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-primary:active { transform: translateY(0) scale(0.99); }
+
+  .btn-icon { font-size: 18px; }
+
+  .welcome-features {
+    display: flex;
+    gap: 24px;
+    margin-top: -10px;
+  }
+
+  .feat-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ===================== SETUP SCREEN ===================== */
+  #screen-setup {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .setup-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .setup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setup-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--cyan);
+  }
+
+  .setup-logo svg {
+    width: 28px; height: 28px;
+  }
+
+  .step-indicators {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  .step-dot.active {
+    background: var(--cyan);
+    width: 24px;
+    border-radius: 4px;
+    box-shadow: 0 0 12px rgba(77,240,197,0.5);
+  }
+  .step-dot.done {
+    background: var(--cyan2);
+    opacity: 0.5;
+  }
+
+  .setup-skip {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .setup-skip:hover { color: var(--text2); }
+
+  .setup-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    overflow: hidden;
+  }
+
+  .step-panel {
+    width: 100%;
+    max-width: 680px;
+    display: none;
+    flex-direction: column;
+    gap: 32px;
+    animation: stepIn 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .step-panel.active { display: flex; }
+
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: -16px;
+  }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .step-desc {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-top: -16px;
+  }
+
+  /* Step 1 - Session name */
+  .input-wrap {
+    position: relative;
+  }
+
+  .fancy-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-size: 22px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    color: var(--text);
+    outline: none;
+    transition: all 0.3s;
+    letter-spacing: -0.5px;
+  }
+  .fancy-input::placeholder { color: var(--text3); }
+  .fancy-input:focus {
+    border-color: var(--cyan);
+    background: rgba(77,240,197,0.04);
+    box-shadow: 0 0 0 3px rgba(77,240,197,0.1), var(--glow-cyan);
+  }
+
+  .input-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    gap: 16px;
+  }
+
+  .hint-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .hint-chip:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  /* Step 2 - Files */
+  .file-drop-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius2);
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .file-drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(77,240,197,0.05) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .file-drop-zone:hover {
+    border-color: var(--cyan);
+    background: rgba(77,240,197,0.04);
+  }
+  .file-drop-zone:hover::before { opacity: 1; }
+
+  .file-drop-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .file-drop-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .file-drop-sub {
+    font-size: 13px;
+    color: var(--text3);
+  }
+
+  #file-input { display: none; }
+
+  .files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .file-icon { font-size: 20px; }
+  .file-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 11px; color: var(--text3); }
+  .file-remove { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 2px; transition: color 0.2s; }
+  .file-remove:hover { color: var(--danger); }
+
+  /* Step 3 - Sites */
+  .sites-presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .site-preset {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .site-preset::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(77,240,197,0.08), rgba(59,125,255,0.08));
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .site-preset:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .site-preset.selected {
+    border-color: var(--cyan);
+    background: rgba(77,240,197,0.06);
+    box-shadow: 0 0 20px rgba(77,240,197,0.1);
+  }
+  .site-preset.selected::before { opacity: 1; }
+
+  .site-check {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--cyan);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #050810;
+    font-weight: 900;
+  }
+  .site-preset.selected .site-check { display: flex; }
+
+  .site-emoji { font-size: 24px; }
+  .site-name { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.02em; }
+  .site-url { font-size: 10px; color: var(--text3); }
+
+  .sites-custom-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .custom-url-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .custom-url-input::placeholder { color: var(--text3); }
+  .custom-url-input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(77,240,197,0.1);
+  }
+
+  .btn-add-url {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+  .btn-add-url:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .custom-sites-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .custom-site-tag {
+    background: rgba(59,125,255,0.1);
+    border: 1px solid rgba(59,125,255,0.2);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--blue2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideIn 0.2s ease;
+  }
+  .custom-site-tag button {
+    background: none; border: none; color: var(--blue2);
+    cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .custom-site-tag button:hover { opacity: 1; }
+
+  /* Step 4 - Timer */
+  .timer-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .timer-opt {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 12px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+  }
+  .timer-opt:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .timer-opt.selected {
+    border-color: var(--cyan);
+    background: rgba(77,240,197,0.06);
+    box-shadow: 0 0 20px rgba(77,240,197,0.1);
+  }
+
+  .timer-opt-time {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .timer-opt-label { font-size: 11px; color: var(--text3); }
+  .timer-opt.selected .timer-opt-time { color: var(--cyan); }
+
+  .setup-footer {
+    padding: 24px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-back {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 100px;
+    padding: 12px 24px;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { border-color: var(--text2); color: var(--text); }
+
+  .btn-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 100%);
+    color: #050810;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 25px rgba(77,240,197,0.2);
+  }
+  .btn-next:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 35px rgba(77,240,197,0.35);
+  }
+
+  /* ===================== BUBBLE TRANSITION ===================== */
+  #screen-transition {
+    background: var(--bg);
+    z-index: 100;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .transition-bubble {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 35% 35%, rgba(77,240,197,0.3), rgba(59,125,255,0.15) 50%, transparent 70%);
+    border: 1px solid rgba(77,240,197,0.3);
+    animation: bubbleGrow 2s cubic-bezier(0.4,0,0.2,1) forwards;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .transition-bubble::before {
+    content: '';
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.15), transparent 60%);
+  }
+
+  @keyframes bubbleGrow {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    80% { transform: scale(0.95); }
+    100% { transform: scale(30); opacity: 0; }
+  }
+
+  .transition-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: fadeInOut 2s ease forwards;
+  }
+
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ===================== INSIDE BUBBLE ===================== */
+  #screen-bubble {
+    align-items: stretch;
+    padding: 0;
+    background: var(--bg);
+  }
+
+  .bubble-layout {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .bubble-topbar {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+    background: rgba(5,8,16,0.95);
+    backdrop-filter: blur(20px);
+    position: relative;
+    z-index: 10;
+  }
+
+  .bubble-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .bubble-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: dotPulse 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  @keyframes dotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .bubble-session-name {
+    flex: 1;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bubble-timer-display {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text2);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  .btn-exit {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255,95,109,0.1);
+    border: 1px solid rgba(255,95,109,0.25);
+    border-radius: 100px;
+    padding: 7px 16px;
+    color: var(--danger);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-exit:hover {
+    background: rgba(255,95,109,0.15);
+    border-color: var(--danger);
+    box-shadow: 0 0 20px rgba(255,95,109,0.2);
+  }
+
+  .bubble-main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    overflow: hidden;
+  }
+
+  .bubble-sidebar {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: rgba(8,13,26,0.8);
+  }
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  .sidebar-files {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    max-height: 200px;
+  }
+
+  .sidebar-file-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+    overflow: hidden;
+  }
+  .sidebar-file-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-file-btn.active { background: rgba(77,240,197,0.08); color: var(--cyan); }
+  .sidebar-file-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .sidebar-sites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+  }
+
+  .sidebar-site-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+  }
+  .sidebar-site-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-site-btn.active { background: rgba(77,240,197,0.08); color: var(--cyan); }
+  .sidebar-site-btn .s-emoji { font-size: 14px; }
+
+  .bubble-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .content-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    gap: 4px;
+    background: rgba(5,8,16,0.6);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .content-tabs::-webkit-scrollbar { height: 2px; }
+  .content-tabs::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .content-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-radius: 0;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .content-tab:hover { color: var(--text2); }
+  .content-tab.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+  .content-tab-close {
+    opacity: 0; width: 0; overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+    color: var(--text3);
+    background: none; border: none;
+    font-size: 14px;
+    padding: 0;
+  }
+  .content-tab:hover .content-tab-close { opacity: 0.6; width: 14px; }
+  .content-tab-close:hover { opacity: 1 !important; color: var(--danger); }
+
+  .content-view {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .content-panel {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  .content-panel.active { display: flex; flex-direction: column; }
+
+  .pdf-viewer {
+    width: 100%;
+    height: 100%;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pdf-canvas-wrap {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #pdf-render-canvas {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .pdf-placeholder {
+    text-align: center;
+    color: var(--text3);
+  }
+  .pdf-placeholder .pdf-icon { font-size: 48px; margin-bottom: 12px; }
+  .pdf-placeholder p { font-size: 14px; }
+
+  .site-frame-wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .site-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+  }
+
+  .iframe-overlay-msg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg2);
+    text-align: center;
+    padding: 40px;
+  }
+
+  .iframe-overlay-msg .site-big-emoji { font-size: 48px; }
+  .iframe-overlay-msg h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .iframe-overlay-msg p { font-size: 13px; color: var(--text2); max-width: 300px; line-height: 1.6; }
+  .iframe-overlay-msg a { color: var(--cyan); text-decoration: none; font-size: 13px; font-weight: 600; }
+  .iframe-overlay-msg a:hover { text-decoration: underline; }
+
+  .empty-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--text3);
+    text-align: center;
+    padding: 40px;
+  }
+
+  .empty-content .empty-icon { font-size: 40px; margin-bottom: 8px; }
+  .empty-content h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text2); }
+  .empty-content p { font-size: 13px; line-height: 1.6; max-width: 300px; }
+
+  /* ===================== ESC OVERLAY ===================== */
+  #esc-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(5,8,16,0.92);
+    backdrop-filter: blur(20px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+  }
+  #esc-overlay.show { display: flex; }
+
+  .esc-icon {
+    font-size: 56px;
+    animation: shake 0.5s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-5deg); }
+    40% { transform: rotate(5deg); }
+    60% { transform: rotate(-5deg); }
+    80% { transform: rotate(5deg); }
+  }
+
+  .esc-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .esc-sub {
+    font-size: 15px;
+    color: var(--text2);
+    max-width: 360px;
+    line-height: 1.6;
+  }
+
+  .esc-countdown {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--cyan);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(77,240,197,0.4);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .esc-progress {
+    width: 280px;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .esc-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--blue));
+    border-radius: 2px;
+    width: 100%;
+    transition: width 1s linear;
+  }
+
+  .esc-btn-stay {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #050810;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .esc-btn-stay:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(77,240,197,0.3); }
+
+  .esc-btn-exit {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 100px;
+    padding: 12px 24px;
+    color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .esc-btn-exit:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ===================== REPORT SCREEN ===================== */
+  #screen-report {
+    align-items: stretch;
+    padding: 0;
+    overflow-y: auto;
+  }
+
+  .report-wrap {
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 60px 40px;
+    animation: stepIn 0.6s ease;
+  }
+
+  .report-card {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .report-top {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .report-badge {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 35% 35%, rgba(77,240,197,0.3), rgba(59,125,255,0.15));
+    border: 1px solid rgba(77,240,197,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 40px rgba(77,240,197,0.2);
+  }
+
+  .report-session-name {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+
+  .report-date {
+    font-size: 13px;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+
+  .report-quote {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text2);
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  .report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .report-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .report-stat:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .report-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--blue));
+    opacity: 0.6;
+  }
+
+  .stat-icon { font-size: 20px; }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; }
+
+  .report-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: -16px;
+  }
+
+  .report-resources {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .report-resource {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+
+  .res-icon { font-size: 18px; }
+  .res-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .res-time { font-size: 12px; color: var(--text3); font-family: 'Syne', sans-serif; font-variant-numeric: tabular-nums; }
+
+  .report-chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 24px;
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+    margin-top: 16px;
+  }
+
+  .chart-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .chart-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--cyan), var(--blue));
+    min-height: 4px;
+    transition: height 1s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .chart-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .chart-bar-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .report-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .btn-new-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #050810;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 25px rgba(77,240,197,0.2);
+  }
+  .btn-new-bubble:hover { transform: translateY(-1px); box-shadow: 0 0 35px rgba(77,240,197,0.35); }
+
+  .btn-save-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 100px;
+    padding: 14px 28px;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-save-report:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* ===================== SCROLLBAR ===================== */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ===================== UTILITIES ===================== */
+  .hidden { display: none !important; }
+  .no-files-msg { font-size: 12px; color: var(--text3); text-align: center; padding: 12px; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- ==================== WELCOME SCREEN ==================== -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-inner">
+    <div class="logo-wrap">
+      <div class="logo-ring"></div>
+      <div class="logo-ring"></div>
+      <div class="logo-ring"></div>
+      <svg class="logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bubbleGrad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+            <stop offset="40%" stop-color="#4DF0C5" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#3B7DFF" stop-opacity="0.4"/>
+          </radialGradient>
+          <radialGradient id="shineGrad" cx="30%" cy="25%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="44" stroke="url(#bubbleGrad)" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <circle cx="50" cy="50" r="38" fill="url(#bubbleGrad)" fill-opacity="0.12"/>
+        <ellipse cx="38" cy="34" rx="16" ry="10" fill="url(#shineGrad)" transform="rotate(-20 38 34)"/>
+        <circle cx="50" cy="50" r="44" stroke="rgba(77,240,197,0.2)" stroke-width="0.5" fill="none"/>
+        <circle cx="62" cy="65" r="4" fill="rgba(255,255,255,0.15)"/>
+        <circle cx="58" cy="72" r="2" fill="rgba(255,255,255,0.08)"/>
+      </svg>
+    </div>
+
+    <div>
+      <div class="welcome-title">Bubble</div>
+    </div>
+
+    <p class="welcome-sub">
+      Create your personal <em>focus space</em>.<br>
+      Only what you need. Nothing more.
+    </p>
+
+    <button class="btn-primary" onclick="startSetup()">
+      <span class="btn-icon">◎</span>
+      Create your bubble
+    </button>
+
+    <div class="welcome-features">
+      <span class="feat-pill">📄 Local Files</span>
+      <span class="feat-pill">🌐 Curated Sites</span>
+      <span class="feat-pill">⏱ Session Timer</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SETUP SCREEN ==================== -->
+<div class="screen" id="screen-setup">
+  <div class="setup-container">
+    <div class="setup-header">
+      <div class="setup-logo">
+        <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="#4DF0C5" stroke-width="1.5" fill="none" opacity="0.6"/>
+          <circle cx="50" cy="50" r="32" fill="rgba(77,240,197,0.1)"/>
+          <ellipse cx="38" cy="36" rx="12" ry="7" fill="rgba(255,255,255,0.2)" transform="rotate(-20 38 36)"/>
+        </svg>
+        Bubble
+      </div>
+      <div class="step-indicators">
+        <div class="step-dot active" id="dot-0"></div>
+        <div class="step-dot" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+      </div>
+      <button class="setup-skip" onclick="goHome()">← Back</button>
+    </div>
+
+    <div class="setup-body">
+
+      <!-- STEP 0: Session Name -->
+      <div class="step-panel active" id="step-0">
+        <div class="step-label">Step 1 of 4</div>
+        <h2 class="step-title">What are you<br>studying today?</h2>
+        <p class="step-desc">Give your session a name. This will appear in your study report.</p>
+        <div class="input-wrap">
+          <input type="text" class="fancy-input" id="session-name-input" placeholder="e.g. Calculus Chapter 4…" autocomplete="off" onkeydown="if(event.key==='Enter')nextStep()">
+          <div class="input-hint">
+            <span class="hint-chip" onclick="setSessionName('Linear Algebra')">Linear Algebra</span>
+            <span class="hint-chip" onclick="setSessionName('History of Art — Exam')">History of Art</span>
+            <span class="hint-chip" onclick="setSessionName('Physics Lab Report')">Physics Lab</span>
+            <span class="hint-chip" onclick="setSessionName('Thesis Writing')">Thesis Writing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Files -->
+      <div class="step-panel" id="step-1">
+        <div class="step-label">Step 2 of 4</div>
+        <h2 class="step-title">Add your<br>study materials</h2>
+        <p class="step-desc">Select PDF files, notes, or any documents you'll need. They'll be accessible directly inside your bubble.</p>
+        <div class="file-drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+          <span class="file-drop-icon">📂</span>
+          <div class="file-drop-title">Click to browse or drag files here</div>
+          <div class="file-drop-sub">PDF, images, text files supported</div>
+        </div>
+        <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.gif,.webp" onchange="handleFiles(this.files)">
+        <div class="files-list" id="files-list"></div>
+      </div>
+
+      <!-- STEP 2: Sites -->
+      <div class="step-panel" id="step-2">
+        <div class="step-label">Step 3 of 4</div>
+        <h2 class="step-title">Which sites will<br>you need?</h2>
+        <p class="step-desc">Select from the presets or add custom URLs. Only these will be accessible in your bubble.</p>
+        <div class="sites-presets" id="sites-presets">
+          <!-- dynamically rendered -->
+        </div>
+        <div class="sites-custom-row">
+          <input type="text" class="custom-url-input" id="custom-url-input" placeholder="https://your-custom-site.com" onkeydown="if(event.key==='Enter')addCustomSite()">
+          <button class="btn-add-url" onclick="addCustomSite()">+ Add</button>
+        </div>
+        <div class="custom-sites-list" id="custom-sites-list"></div>
+      </div>
+
+      <!-- STEP 3: Timer -->
+      <div class="step-panel" id="step-3">
+        <div class="step-label">Step 4 of 4</div>
+        <h2 class="step-title">Set a study<br>duration</h2>
+        <p class="step-desc">Optional — choose a Pomodoro-style timer, or leave it open and exit manually whenever you're done.</p>
+        <div class="timer-options">
+          <div class="timer-opt" onclick="selectTimer(0)" id="timer-none">
+            <div class="timer-opt-time">∞</div>
+            <div class="timer-opt-label">No limit</div>
+          </div>
+          <div class="timer-opt selected" onclick="selectTimer(25)" id="timer-25">
+            <div class="timer-opt-time">25m</div>
+            <div class="timer-opt-label">Pomodoro</div>
+          </div>
+          <div class="timer-opt" onclick="selectTimer(45)" id="timer-45">
+            <div class="timer-opt-time">45m</div>
+            <div class="timer-opt-label">Deep focus</div>
+          </div>
+          <div class="timer-opt" onclick="selectTimer(90)" id="timer-90">
+            <div class="timer-opt-time">90m</div>
+            <div class="timer-opt-label">Long session</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="setup-footer">
+      <button class="btn-back" id="btn-back" onclick="prevStep()">← Back</button>
+      <button class="btn-next" id="btn-next" onclick="nextStep()">
+        Continue →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TRANSITION ==================== -->
+<div class="screen" id="screen-transition">
+  <div class="transition-bubble"></div>
+  <div class="transition-text">Creating your bubble…</div>
+</div>
+
+<!-- ==================== BUBBLE ==================== -->
+<div class="screen" id="screen-bubble">
+  <div class="bubble-layout">
+
+    <div class="bubble-topbar">
+      <div class="bubble-indicator">
+        <div class="bubble-dot"></div>
+        Bubble active
+      </div>
+      <div class="bubble-session-name" id="bubble-session-name">–</div>
+      <div class="bubble-timer-display" id="bubble-timer-display">00:00</div>
+      <button class="btn-exit" onclick="confirmExit()">
+        ✕ Exit Bubble
+      </button>
+    </div>
+
+    <div class="bubble-main">
+      <div class="bubble-sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">📄 Documents</div>
+          <div class="sidebar-files" id="sidebar-files">
+            <div class="no-files-msg">No files added</div>
+          </div>
+        </div>
+        <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="sidebar-title">🌐 Sites</div>
+          <div class="sidebar-sites-list" id="sidebar-sites"></div>
+        </div>
+      </div>
+
+      <div class="bubble-content">
+        <div class="content-tabs" id="content-tabs"></div>
+        <div class="content-view" id="content-view">
+          <div class="empty-content" id="empty-content">
+            <div class="empty-icon">◎</div>
+            <h3>Your bubble is ready</h3>
+            <p>Select a document or site from the sidebar to start studying. Stay focused.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ESC OVERLAY ==================== -->
+<div id="esc-overlay">
+  <div class="esc-icon">🫧</div>
+  <div class="esc-title">Leaving so soon?</div>
+  <div class="esc-sub">Your bubble is protecting your focus. Returning in <strong id="esc-count-inline">5</strong> seconds automatically.</div>
+  <div class="esc-countdown" id="esc-countdown">5</div>
+  <div class="esc-progress"><div class="esc-progress-bar" id="esc-progress-bar"></div></div>
+  <button class="esc-btn-stay" onclick="stayInBubble()">↩ Stay in the bubble</button>
+  <button class="esc-btn-exit" onclick="forceExitBubble()">Exit anyway</button>
+</div>
+
+<!-- ==================== REPORT SCREEN ==================== -->
+<div class="screen" id="screen-report">
+  <div class="report-wrap">
+    <div class="report-card" id="report-card">
+      <!-- dynamically rendered -->
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== CANVAS PARTICLES =====================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let animFrame;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(initial) {
+    this.x = Math.random() * canvas.width;
+    this.y = initial ? Math.random() * canvas.height : canvas.height + 20;
+    this.r = Math.random() * 2.5 + 0.5;
+    this.speed = Math.random() * 0.4 + 0.1;
+    this.drift = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.opacityDir = (Math.random() - 0.5) * 0.005;
+    this.color = Math.random() > 0.5 ? '77,240,197' : '107,159,255';
+  }
+  update() {
+    this.y -= this.speed;
+    this.x += this.drift;
+    this.opacity += this.opacityDir;
+    if (this.opacity > 0.6 || this.opacity < 0.05) this.opacityDir *= -1;
+    if (this.y < -10) this.reset(false);
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+function initParticles() {
+  particles = [];
+  const count = Math.floor((canvas.width * canvas.height) / 12000);
+  for (let i = 0; i < count; i++) particles.push(new Particle());
+}
+
+function animateCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  animFrame = requestAnimationFrame(animateCanvas);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+resizeCanvas();
+initParticles();
+animateCanvas();
+
+// ===================== STATE =====================
+let state = {
+  sessionName: '',
+  files: [],
+  selectedSites: [],
+  customSites: [],
+  timerMinutes: 25,
+  currentStep: 0,
+  sessionStart: null,
+  timerInterval: null,
+  elapsedSeconds: 0,
+  openTabs: [],
+  activeTab: null,
+};
+
+const SITE_PRESETS = [
+  { name: 'ChatGPT', url: 'https://chatgpt.com', emoji: '🤖' },
+  { name: 'YouTube', url: 'https://youtube.com', emoji: '▶️' },
+  { name: 'Wikipedia', url: 'https://wikipedia.org', emoji: '📖' },
+  { name: 'Google Scholar', url: 'https://scholar.google.com', emoji: '🎓' },
+  { name: 'Notion', url: 'https://notion.so', emoji: '📝' },
+  { name: 'Wolfram Alpha', url: 'https://wolframalpha.com', emoji: '🔢' },
+  { name: 'DeepL', url: 'https://deepl.com', emoji: '🌍' },
+  { name: 'GitHub', url: 'https://github.com', emoji: '💻' },
+  { name: 'Google Drive', url: 'https://drive.google.com', emoji: '☁️' },
+  { name: 'Quizlet', url: 'https://quizlet.com', emoji: '🃏' },
+  { name: 'Anki Web', url: 'https://ankiweb.net', emoji: '🧠' },
+  { name: 'Claude', url: 'https://claude.ai', emoji: '✨' },
+];
+
+// ===================== SCREEN MANAGER =====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.classList.remove('exit');
+  });
+  const target = document.getElementById('screen-' + id);
+  if (target) {
+    setTimeout(() => target.classList.add('active'), 10);
+  }
+}
+
+// ===================== WELCOME =====================
+function goHome() { showScreen('welcome'); }
+
+function startSetup() {
+  // Request fullscreen
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+
+  renderSitePresets();
+  showScreen('setup');
+  state.currentStep = 0;
+  updateStepUI();
+}
+
+// ===================== SETUP STEPS =====================
+function setSessionName(name) {
+  document.getElementById('session-name-input').value = name;
+}
+
+function renderSitePresets() {
+  const wrap = document.getElementById('sites-presets');
+  wrap.innerHTML = '';
+  SITE_PRESETS.forEach((site, i) => {
+    const isSelected = state.selectedSites.includes(i);
+    const div = document.createElement('div');
+    div.className = 'site-preset' + (isSelected ? ' selected' : '');
+    div.innerHTML = `
+      <div class="site-check">✓</div>
+      <div class="site-emoji">${site.emoji}</div>
+      <div class="site-name">${site.name}</div>
+      <div class="site-url">${site.url.replace('https://', '')}</div>
+    `;
+    div.onclick = () => toggleSitePreset(i, div);
+    wrap.appendChild(div);
+  });
+}
+
+function toggleSitePreset(idx, el) {
+  const i = state.selectedSites.indexOf(idx);
+  if (i === -1) { state.selectedSites.push(idx); el.classList.add('selected'); }
+  else { state.selectedSites.splice(i, 1); el.classList.remove('selected'); }
+}
+
+function addCustomSite() {
+  const inp = document.getElementById('custom-url-input');
+  let url = inp.value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) url = 'https://' + url;
+  state.customSites.push(url);
+  inp.value = '';
+  renderCustomSites();
+}
+
+function renderCustomSites() {
+  const wrap = document.getElementById('custom-sites-list');
+  wrap.innerHTML = '';
+  state.customSites.forEach((url, i) => {
+    const div = document.createElement('div');
+    div.className = 'custom-site-tag';
+    div.innerHTML = `🔗 ${url} <button onclick="removeCustomSite(${i})">×</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+function removeCustomSite(i) {
+  state.customSites.splice(i, 1);
+  renderCustomSites();
+}
+
+function selectTimer(mins) {
+  state.timerMinutes = mins;
+  document.querySelectorAll('.timer-opt').forEach(el => el.classList.remove('selected'));
+  const map = {0:'timer-none',25:'timer-25',45:'timer-45',90:'timer-90'};
+  if (map[mins]) document.getElementById(map[mins]).classList.add('selected');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = 'var(--cyan)';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = '';
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    if (state.files.find(f => f.name === file.name)) return;
+    state.files.push(file);
+  });
+  renderFilesList();
+}
+
+function renderFilesList() {
+  const wrap = document.getElementById('files-list');
+  wrap.innerHTML = '';
+  state.files.forEach((file, i) => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const icons = {pdf:'📄', png:'🖼', jpg:'🖼', jpeg:'🖼', gif:'🖼', webp:'🖼', txt:'📝', md:'📝'};
+    const icon = icons[ext] || '📄';
+    const size = file.size < 1024*1024 ? (file.size/1024).toFixed(0)+'KB' : (file.size/1024/1024).toFixed(1)+'MB';
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <span class="file-icon">${icon}</span>
+      <span class="file-name">${file.name}</span>
+      <span class="file-size">${size}</span>
+      <button class="file-remove" onclick="removeFile(${i})">×</button>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function removeFile(i) {
+  state.files.splice(i, 1);
+  renderFilesList();
+}
+
+function updateStepUI() {
+  document.querySelectorAll('.step-panel').forEach((p, i) => {
+    p.classList.toggle('active', i === state.currentStep);
+  });
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i === state.currentStep) d.classList.add('active');
+    else if (i < state.currentStep) d.classList.add('done');
+  });
+  document.getElementById('btn-back').style.visibility = state.currentStep === 0 ? 'hidden' : 'visible';
+  const btnNext = document.getElementById('btn-next');
+  if (state.currentStep === 3) {
+    btnNext.innerHTML = '✦ Create Bubble';
+    btnNext.style.background = 'linear-gradient(135deg, #4DF0C5 0%, #8B5CF6 100%)';
+  } else {
+    btnNext.innerHTML = 'Continue →';
+    btnNext.style.background = '';
+  }
+}
+
+function nextStep() {
+  if (state.currentStep === 0) {
+    const name = document.getElementById('session-name-input').value.trim();
+    if (!name) {
+      document.getElementById('session-name-input').focus();
+      document.getElementById('session-name-input').style.borderColor = 'var(--danger)';
+      setTimeout(() => document.getElementById('session-name-input').style.borderColor = '', 1500);
+      return;
+    }
+    state.sessionName = name;
+  }
+  if (state.currentStep < 3) {
+    state.currentStep++;
+    updateStepUI();
+  } else {
+    createBubble();
+  }
+}
+
+function prevStep() {
+  if (state.currentStep > 0) {
+    state.currentStep--;
+    updateStepUI();
+  }
+}
+
+// ===================== CREATE BUBBLE =====================
+function createBubble() {
+  showScreen('transition');
+  setTimeout(() => {
+    buildBubble();
+    showScreen('bubble');
+    startBubbleTimer();
+    setupFullscreenGuard();
+  }, 2400);
+}
+
+function buildBubble() {
+  state.sessionStart = new Date();
+  state.openTabs = [];
+  state.activeTab = null;
+
+  document.getElementById('bubble-session-name').textContent = state.sessionName;
+
+  // Sidebar files
+  const sideFiles = document.getElementById('sidebar-files');
+  if (state.files.length === 0) {
+    sideFiles.innerHTML = '<div class="no-files-msg">No files added</div>';
+  } else {
+    sideFiles.innerHTML = '';
+    state.files.forEach((file, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'sidebar-file-btn';
+      btn.id = 'sidebar-file-' + i;
+      const ext = file.name.split('.').pop().toLowerCase();
+      const icons = {pdf:'📄',png:'🖼',jpg:'🖼',jpeg:'🖼',gif:'🖼',webp:'🖼',txt:'📝',md:'📝'};
+      btn.innerHTML = `<span>${icons[ext]||'📄'}</span><span>${file.name}</span>`;
+      btn.onclick = () => openFileTab(i);
+      sideFiles.appendChild(btn);
+    });
+  }
+
+  // Sidebar sites
+  const sideSites = document.getElementById('sidebar-sites');
+  sideSites.innerHTML = '';
+  const allSites = [
+    ...state.selectedSites.map(i => SITE_PRESETS[i]),
+    ...state.customSites.map(url => ({ name: url.replace(/https?:\/\//, '').split('/')[0], url, emoji: '🔗' }))
+  ];
+  if (allSites.length === 0) {
+    sideSites.innerHTML = '<div class="no-files-msg">No sites added</div>';
+  } else {
+    allSites.forEach((site, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'sidebar-site-btn';
+      btn.id = 'sidebar-site-' + i;
+      btn.innerHTML = `<span class="s-emoji">${site.emoji}</span><span>${site.name}</span>`;
+      btn.onclick = () => openSiteTab(i, site);
+      sideSites.appendChild(btn);
+    });
+  }
+
+  state.allSites = allSites;
+
+  // Clear tabs
+  document.getElementById('content-tabs').innerHTML = '';
+  document.getElementById('content-view').innerHTML = `
+    <div class="empty-content" id="empty-content">
+      <div class="empty-icon">◎</div>
+      <h3>Your bubble is ready</h3>
+      <p>Select a document or site from the sidebar to start studying. Stay focused.</p>
+    </div>`;
+}
+
+// ===================== TABS =====================
+let tabCount = 0;
+
+function openFileTab(fileIdx) {
+  const file = state.files[fileIdx];
+  const tabId = 'tab-file-' + fileIdx;
+  if (document.getElementById(tabId + '-panel')) {
+    activateTab(tabId);
+    return;
+  }
+  tabCount++;
+  createTab(tabId, '📄', file.name.length > 16 ? file.name.slice(0,14)+'…' : file.name);
+
+  const panel = document.createElement('div');
+  panel.className = 'content-panel';
+  panel.id = tabId + '-panel';
+  panel.innerHTML = buildFilePanel(file);
+  document.getElementById('content-view').appendChild(panel);
+
+  if (file.type === 'application/pdf') {
+    loadPDF(file, tabId);
+  } else if (file.type.startsWith('image/')) {
+    const url = URL.createObjectURL(file);
+    panel.querySelector('.pdf-canvas-wrap').innerHTML = `<img src="${url}" style="max-width:100%;height:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);">`;
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => {
+      panel.querySelector('.pdf-canvas-wrap').innerHTML = `<pre style="color:var(--text2);font-size:13px;line-height:1.8;padding:20px;white-space:pre-wrap;max-width:800px;">${e.target.result}</pre>`;
+    };
+    reader.readAsText(file);
+  }
+
+  document.getElementById('sidebar-file-' + fileIdx)?.classList.add('active');
+  activateTab(tabId);
+}
+
+function buildFilePanel(file) {
+  return `<div class="pdf-viewer"><div class="pdf-canvas-wrap" id="pdf-wrap-${file.name}"><div class="pdf-placeholder"><div class="pdf-icon">📄</div><p>Loading ${file.name}…</p></div></div></div>`;
+}
+
+async function loadPDF(file, tabId) {
+  const panel = document.getElementById(tabId + '-panel');
+  const wrap = panel.querySelector('.pdf-canvas-wrap');
+  try {
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    if (!pdfjsLib) {
+      wrap.innerHTML = `<div class="pdf-placeholder"><div class="pdf-icon">📄</div><p style="margin-bottom:12px;color:var(--text2);">${file.name}</p><p style="font-size:12px;color:var(--text3);">PDF viewer requires the PDF.js library.<br>File is added to your session.</p></div>`;
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    wrap.innerHTML = '';
+    for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({ scale: 1.5 });
+      const c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      c.style.cssText = 'display:block;margin:0 auto 16px;max-width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.4);';
+      wrap.appendChild(c);
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    }
+  } catch(e) {
+    wrap.innerHTML = `<div class="pdf-placeholder"><div class="pdf-icon">📄</div><p>${file.name}</p><p style="font-size:12px;color:var(--text3);margin-top:8px;">Unable to render PDF in browser. File is in your session.</p></div>`;
+  }
+}
+
+function openSiteTab(siteIdx, site) {
+  const tabId = 'tab-site-' + siteIdx;
+  if (document.getElementById(tabId + '-panel')) {
+    activateTab(tabId);
+    return;
+  }
+  createTab(tabId, site.emoji, site.name);
+
+  const panel = document.createElement('div');
+  panel.className = 'content-panel';
+  panel.id = tabId + '-panel';
+  panel.innerHTML = `
+    <div class="site-frame-wrap">
+      <div class="iframe-overlay-msg">
+        <div class="site-big-emoji">${site.emoji}</div>
+        <h3>${site.name}</h3>
+        <p>Due to browser security restrictions, sites open in a new tab. Click below — the bubble remains active.</p>
+        <a href="${site.url}" target="_blank" onclick="trackSiteVisit('${site.name}')">Open ${site.name} →</a>
+      </div>
+    </div>`;
+  document.getElementById('content-view').appendChild(panel);
+  document.getElementById('sidebar-site-' + siteIdx)?.classList.add('active');
+  activateTab(tabId);
+}
+
+function trackSiteVisit(name) {
+  if (!state.siteVisits) state.siteVisits = {};
+  if (!state.siteVisits[name]) state.siteVisits[name] = 0;
+  state.siteVisits[name]++;
+}
+
+function createTab(tabId, emoji, label) {
+  // Remove empty content
+  document.getElementById('empty-content')?.remove();
+
+  const tab = document.createElement('button');
+  tab.className = 'content-tab';
+  tab.id = tabId + '-tab';
+  tab.innerHTML = `${emoji} ${label} <button class="content-tab-close" onclick="closeTab(event,'${tabId}')">×</button>`;
+  tab.onclick = (e) => { if (!e.target.classList.contains('content-tab-close')) activateTab(tabId); };
+  document.getElementById('content-tabs').appendChild(tab);
+  state.openTabs.push(tabId);
+}
+
+function activateTab(tabId) {
+  state.activeTab = tabId;
+  document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(tabId + '-tab')?.classList.add('active');
+  document.getElementById(tabId + '-panel')?.classList.add('active');
+}
+
+function closeTab(e, tabId) {
+  e.stopPropagation();
+  document.getElementById(tabId + '-tab')?.remove();
+  document.getElementById(tabId + '-panel')?.remove();
+  const idx = state.openTabs.indexOf(tabId);
+  if (idx > -1) state.openTabs.splice(idx, 1);
+  if (state.activeTab === tabId) {
+    if (state.openTabs.length > 0) activateTab(state.openTabs[state.openTabs.length - 1]);
+    else {
+      state.activeTab = null;
+      document.getElementById('content-view').innerHTML = `<div class="empty-content" id="empty-content"><div class="empty-icon">◎</div><h3>No content open</h3><p>Select a file or site from the sidebar.</p></div>`;
+    }
+  }
+}
+
+// ===================== TIMER =====================
+function startBubbleTimer() {
+  state.elapsedSeconds = 0;
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    state.elapsedSeconds++;
+    updateTimerDisplay();
+    if (state.timerMinutes > 0 && state.elapsedSeconds >= state.timerMinutes * 60) {
+      clearInterval(state.timerInterval);
+      handleTimerEnd();
+    }
+  }, 1000);
+}
+
+function handleTimerEnd() {
+  document.getElementById('bubble-timer-display').style.color = 'var(--cyan)';
+  // Could show a gentle notification
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('bubble-timer-display');
+  if (state.timerMinutes > 0) {
+    const remaining = state.timerMinutes * 60 - state.elapsedSeconds;
+    const r = Math.max(0, remaining);
+    el.textContent = formatTime(r);
+    if (r < 60) el.style.color = 'var(--danger)';
+  } else {
+    el.textContent = formatTime(state.elapsedSeconds);
+  }
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return m + ':' + s;
+}
+
+// ===================== FULLSCREEN GUARD =====================
+let escTimerInterval = null;
+let escCountdown = 5;
+
+function setupFullscreenGuard() {
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+}
+
+function handleFullscreenChange() {
+  const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+  if (!isFullscreen) {
+    const bubble = document.getElementById('screen-bubble');
+    if (bubble.classList.contains('active')) {
+      showEscOverlay();
+    }
+  }
+}
+
+function showEscOverlay() {
+  const overlay = document.getElementById('esc-overlay');
+  overlay.classList.add('show');
+  escCountdown = 5;
+  document.getElementById('esc-countdown').textContent = escCountdown;
+  document.getElementById('esc-count-inline').textContent = escCountdown;
+  document.getElementById('esc-progress-bar').style.width = '100%';
+
+  clearInterval(escTimerInterval);
+  escTimerInterval = setInterval(() => {
+    escCountdown--;
+    document.getElementById('esc-countdown').textContent = escCountdown;
+    document.getElementById('esc-count-inline').textContent = escCountdown;
+    document.getElementById('esc-progress-bar').style.width = (escCountdown / 5 * 100) + '%';
+    if (escCountdown <= 0) {
+      clearInterval(escTimerInterval);
+      stayInBubble();
+    }
+  }, 1000);
+}
+
+function stayInBubble() {
+  clearInterval(escTimerInterval);
+  document.getElementById('esc-overlay').classList.remove('show');
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+function forceExitBubble() {
+  clearInterval(escTimerInterval);
+  document.getElementById('esc-overlay').classList.remove('show');
+  endSession();
+}
+
+// ===================== EXIT FLOW =====================
+function confirmExit() {
+  if (confirm('Exit the bubble? Your session report will be ready.')) {
+    endSession();
+  }
+}
+
+function endSession() {
+  clearInterval(state.timerInterval);
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+
+  if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  buildReport();
+  showScreen('report');
+}
+
+// ===================== REPORT =====================
+const QUOTES = [
+  "The secret of getting ahead is getting started. — Mark Twain",
+  "An investment in knowledge pays the best interest. — Benjamin Franklin",
+  "The more that you read, the more things you will know. — Dr. Seuss",
+  "Education is not the filling of a pail, but the lighting of a fire. — W.B. Yeats",
+  "Study without desire spoils the memory, and it retains nothing. — Leonardo da Vinci",
+  "The beautiful thing about learning is that no one can take it away from you. — B.B. King",
+];
+
+function buildReport() {
+  const elapsed = state.elapsedSeconds;
+  const mins = Math.floor(elapsed / 60);
+  const hours = Math.floor(mins / 60);
+  const displayMins = mins % 60;
+  const timeStr = hours > 0 ? `${hours}h ${displayMins}m` : `${mins}m`;
+  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
+  const totalFiles = state.files.length;
+  const totalSites = state.selectedSites.length + state.customSites.length;
+
+  const allSites = state.allSites || [];
+  const siteVisits = state.siteVisits || {};
+
+  let resourceRows = '';
+  state.files.forEach(f => {
+    resourceRows += `<div class="report-resource"><span class="res-icon">📄</span><span class="res-name">${f.name}</span></div>`;
+  });
+  allSites.forEach(s => {
+    const visits = siteVisits[s.name] ? ` · ${siteVisits[s.name]} visit${siteVisits[s.name]>1?'s':''}` : '';
+    resourceRows += `<div class="report-resource"><span class="res-icon">${s.emoji}</span><span class="res-name">${s.name}</span><span class="res-time">${s.url.replace('https://','').split('/')[0]}${visits}</span></div>`;
+  });
+  if (!resourceRows) resourceRows = '<p style="color:var(--text3);font-size:13px;">No resources added.</p>';
+
+  // Simple random chart data for time distribution
+  const chartItems = [...state.files.slice(0,4), ...allSites.slice(0,4)];
+  let chartBars = '';
+  if (chartItems.length > 0) {
+    const maxH = 80;
+    chartItems.forEach((item, i) => {
+      const h = Math.max(10, Math.floor(Math.random() * maxH));
+      const name = item.name || item;
+      const label = (typeof name === 'string' ? name : '').slice(0, 8);
+      chartBars += `<div class="chart-bar-col"><div class="chart-bar" style="height:${h}%"></div><div class="chart-bar-label">${label}</div></div>`;
+    });
+  }
+
+  const card = document.getElementById('report-card');
+  card.innerHTML = `
+    <div class="report-top">
+      <div class="report-badge">🫧</div>
+      <div class="report-session-name">${state.sessionName}</div>
+      <div class="report-date">${date}</div>
+    </div>
+
+    <div class="report-quote">"${quote}"</div>
+
+    <div class="report-stats-grid">
+      <div class="report-stat">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-value">${timeStr}</div>
+        <div class="stat-label">Study duration</div>
+      </div>
+      <div class="report-stat">
+        <div class="stat-icon">📄</div>
+        <div class="stat-value">${totalFiles}</div>
+        <div class="stat-label">Documents used</div>
+      </div>
+      <div class="report-stat">
+        <div class="stat-icon">🌐</div>
+        <div class="stat-value">${totalSites}</div>
+        <div class="stat-label">Sites accessible</div>
+      </div>
+    </div>
+
+    ${resourceRows ? `
+    <div class="report-section-title">Resources in this session</div>
+    <div class="report-resources">${resourceRows}</div>
+    ` : ''}
+
+    ${chartBars ? `
+    <div class="report-section-title">Session overview</div>
+    <div class="report-chart-wrap">
+      <div style="font-size:12px;color:var(--text3);">Resources distribution</div>
+      <div class="chart-bars">${chartBars}</div>
+    </div>` : ''}
+
+    <div class="report-actions">
+      <button class="btn-new-bubble" onclick="startNewSession()">✦ New Bubble</button>
+      <button class="btn-save-report" onclick="saveReport()">↓ Save Report</button>
+    </div>
+  `;
+}
+
+function startNewSession() {
+  state = {
+    sessionName: '',
+    files: [],
+    selectedSites: [],
+    customSites: [],
+    timerMinutes: 25,
+    currentStep: 0,
+    sessionStart: null,
+    timerInterval: null,
+    elapsedSeconds: 0,
+    openTabs: [],
+    activeTab: null,
+    allSites: [],
+    siteVisits: {},
+  };
+  document.getElementById('session-name-input').value = '';
+  renderSitePresets();
+  selectTimer(25);
+  renderFilesList();
+  renderCustomSites();
+
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+
+  showScreen('setup');
+  updateStepUI();
+}
+
+function saveReport() {
+  const name = state.sessionName.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const elapsed = state.elapsedSeconds;
+  const mins = Math.floor(elapsed / 60);
+  const date = new Date().toISOString().split('T')[0];
+  const content = `BUBBLE STUDY REPORT
+====================
+Session: ${state.sessionName}
+Date: ${new Date().toLocaleDateString()}
+Duration: ${mins} minutes
+Files: ${state.files.map(f=>f.name).join(', ') || 'None'}
+Sites: ${[...state.selectedSites.map(i=>SITE_PRESETS[i].name), ...state.customSites].join(', ') || 'None'}
+`;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bubble-report-${date}-${name}.txt`;
+  a.click();
+}
+</script>
+
+<!-- PDF.js CDN (optional but improves PDF viewing) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window['pdfjs-dist/build/pdf'] = pdfjsLib;
+  }
+</script>
+
+</body>
+</html>
